@@ -46,6 +46,9 @@ set(${PROJECT_NAME}_sources
   src/rcl/logging.c
   src/rcl/node.c
   src/rcl/node_options.c
+  src/rcl/parameter.c
+  src/rcl/parameter_client.c
+  src/rcl/parameter_service.c
   src/rcl/publisher.c
   src/rcl/remap.c
   src/rcl/rmw_implementation_identifier_check.c
