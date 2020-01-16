@@ -97,8 +97,8 @@ bool rcl_parameter_value_compare(
   const rcl_interfaces__msg__ParameterValue * parameter1,
   const rcl_interfaces__msg__ParameterValue * parameter2)
 {
-  RCL_CHECK_ARGUMENT_FOR_NULL(parameter1, false, rcl_get_default_allocator());
-  RCL_CHECK_ARGUMENT_FOR_NULL(parameter2, false, rcl_get_default_allocator());
+  RCL_CHECK_ARGUMENT_FOR_NULL(parameter1, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(parameter2, RCL_RET_INVALID_ARGUMENT);
   if (parameter1->type != parameter2->type) {
     return false;
   }
@@ -111,9 +111,6 @@ bool rcl_parameter_value_compare(
       return parameter1->double_value == parameter2->double_value;
     case rcl_interfaces__msg__ParameterType__PARAMETER_STRING:
       return strcmp(parameter1->string_value.data, parameter2->string_value.data) != 0;
-    case rcl_interfaces__msg__ParameterType__PARAMETER_BYTES:
-      // Not implemented
-      break;
     case rcl_interfaces__msg__ParameterType__PARAMETER_NOT_SET:
     default:
       return false;
@@ -127,8 +124,8 @@ rcl_parameter_value_copy(
   rcl_interfaces__msg__ParameterValue * dst,
   const rcl_interfaces__msg__ParameterValue * src)
 {
-  RCL_CHECK_ARGUMENT_FOR_NULL(dst, false, rcl_get_default_allocator());
-  RCL_CHECK_ARGUMENT_FOR_NULL(src, false, rcl_get_default_allocator());
+  RCL_CHECK_ARGUMENT_FOR_NULL(dst, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(src, RCL_RET_INVALID_ARGUMENT);
 
   dst->type = src->type;
 
@@ -145,9 +142,6 @@ rcl_parameter_value_copy(
     case rcl_interfaces__msg__ParameterType__PARAMETER_STRING:
       return rosidl_generator_c__String__assign(
         &dst->string_value, src->string_value.data) ? RCL_RET_OK : RCL_RET_ERROR;
-    case rcl_interfaces__msg__ParameterType__PARAMETER_BYTES:
-      // Not implemented
-      break;
     case rcl_interfaces__msg__ParameterType__PARAMETER_NOT_SET:
     default:
       return RCL_RET_ERROR;
@@ -160,8 +154,8 @@ rcl_parameter_copy(
   rcl_interfaces__msg__Parameter * dst,
   const rcl_interfaces__msg__Parameter * src)
 {
-  RCL_CHECK_ARGUMENT_FOR_NULL(dst, false, rcl_get_default_allocator());
-  RCL_CHECK_ARGUMENT_FOR_NULL(src, false, rcl_get_default_allocator());
+  RCL_CHECK_ARGUMENT_FOR_NULL(dst, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(src, RCL_RET_INVALID_ARGUMENT);
   if (!rosidl_generator_c__String__assign(&dst->name, src->name.data)) {
     return RCL_RET_ERROR;
   }
@@ -170,15 +164,14 @@ rcl_parameter_copy(
 
 rcl_ret_t
 rcl_parameter_convert_changes_to_event(
-  const rcl_interfaces__msg__Parameter__Array * prior_state,
-  const rcl_interfaces__msg__Parameter__Array * new_state,
+  const rcl_interfaces__msg__Parameter__Sequence * prior_state,
+  const rcl_interfaces__msg__Parameter__Sequence * new_state,
   rcl_interfaces__msg__ParameterEvent * parameter_event)
 {
   // Diff the prior state and the new state and fill the parameter_event struct
-  RCL_CHECK_ARGUMENT_FOR_NULL(prior_state, RCL_RET_INVALID_ARGUMENT, rcl_get_default_allocator());
-  RCL_CHECK_ARGUMENT_FOR_NULL(new_state, RCL_RET_INVALID_ARGUMENT, rcl_get_default_allocator());
-  RCL_CHECK_ARGUMENT_FOR_NULL(
-    parameter_event, RCL_RET_INVALID_ARGUMENT, rcl_get_default_allocator());
+  RCL_CHECK_ARGUMENT_FOR_NULL(prior_state, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(new_state, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(parameter_event, RCL_RET_INVALID_ARGUMENT);
 
   size_t prior_idx, new_idx;
   size_t num_deleted_params = 0;
@@ -216,15 +209,15 @@ rcl_parameter_convert_changes_to_event(
     }
   }
 
-  rcl_interfaces__msg__Parameter__Array__fini(&parameter_event->deleted_parameters);
-  rcl_interfaces__msg__Parameter__Array__fini(&parameter_event->changed_parameters);
-  rcl_interfaces__msg__Parameter__Array__fini(&parameter_event->new_parameters);
+  rcl_interfaces__msg__Parameter__Sequence__fini(&parameter_event->deleted_parameters);
+  rcl_interfaces__msg__Parameter__Sequence__fini(&parameter_event->changed_parameters);
+  rcl_interfaces__msg__Parameter__Sequence__fini(&parameter_event->new_parameters);
 
-  rcl_interfaces__msg__Parameter__Array__init(&parameter_event->deleted_parameters,
+  rcl_interfaces__msg__Parameter__Sequence__init(&parameter_event->deleted_parameters,
     num_deleted_params);
-  rcl_interfaces__msg__Parameter__Array__init(&parameter_event->changed_parameters,
+  rcl_interfaces__msg__Parameter__Sequence__init(&parameter_event->changed_parameters,
     num_changed_params);
-  rcl_interfaces__msg__Parameter__Array__init(&parameter_event->new_parameters, num_new_params);
+  rcl_interfaces__msg__Parameter__Sequence__init(&parameter_event->new_parameters, num_new_params);
 
   size_t new_array_idx = 0;
   size_t deleted_idx = 0;

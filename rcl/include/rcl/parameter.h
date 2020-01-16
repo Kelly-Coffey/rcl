@@ -96,13 +96,6 @@ rcl_parameter_get_string(
 RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_parameter_get_bytes(
-  const rcl_interfaces__msg__Parameter * parameter, rosidl_generator_c__byte__Array * output);
-
-
-RCL_PUBLIC
-RCL_WARN_UNUSED
-rcl_ret_t
 rcl_parameter_set_value_bool(
   rcl_interfaces__msg__ParameterValue * parameter_value, bool value);
 
@@ -150,8 +143,8 @@ RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_convert_changes_to_event(
-  const rcl_interfaces__msg__Parameter__Array * prior_state,
-  const rcl_interfaces__msg__Parameter__Array * new_state,
+  const rcl_interfaces__msg__Parameter__Sequence * prior_state,
+  const rcl_interfaces__msg__Parameter__Sequence * new_state,
   rcl_interfaces__msg__ParameterEvent * parameter_event);
 
 #if __cplusplus

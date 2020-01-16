@@ -73,7 +73,7 @@ rcl_parameter_service_fini(rcl_parameter_service_t * parameter_service);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rcl_interfaces__msg__Parameter__Array *
+rcl_interfaces__msg__Parameter__Sequence *
 rcl_parameter_service_take_set_request(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header);
@@ -84,11 +84,11 @@ rcl_ret_t
 rcl_parameter_service_send_set_response(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header,
-  const rcl_interfaces__msg__SetParametersResult__Array * set_parameter_results);
+  const rcl_interfaces__msg__SetParametersResult__Sequence * set_parameter_results);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rosidl_generator_c__String__Array *
+rosidl_generator_c__String__Sequence *
 rcl_parameter_service_take_get_request(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header);
@@ -99,7 +99,7 @@ rcl_ret_t
 rcl_parameter_service_send_get_response(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header,
-  const rcl_interfaces__msg__ParameterValue__Array * parameters);
+  const rcl_interfaces__msg__ParameterValue__Sequence * parameters);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
@@ -107,18 +107,18 @@ rcl_ret_t
 rcl_parameter_service_send_get_types_response(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header,
-  const rosidl_generator_c__uint8__Array * parameter_types);
+  const rosidl_generator_c__uint8__Sequence * parameter_types);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rosidl_generator_c__String__Array *
+rosidl_generator_c__String__Sequence *
 rcl_parameter_service_take_get_types_request(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rcl_interfaces__msg__Parameter__Array *
+rcl_interfaces__msg__Parameter__Sequence *
 rcl_parameter_service_take_set_atomically_request(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header);
@@ -137,7 +137,7 @@ rcl_ret_t
 rcl_parameter_service_take_list_request(
   const rcl_parameter_service_t * service,
   rmw_request_id_t * request_header,
-  rosidl_generator_c__String__Array * prefixes,
+  rosidl_generator_c__String__Sequence * prefixes,
   uint64_t * depth);
 
 RCL_PUBLIC

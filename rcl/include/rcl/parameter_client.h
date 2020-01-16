@@ -79,12 +79,12 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_client_send_set_request(
   const rcl_parameter_client_t * parameter_client,
-  const rcl_interfaces__msg__Parameter__Array * parameters,
+  const rcl_interfaces__msg__Parameter__Sequence * parameters,
   int64_t * sequence_number);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rcl_interfaces__msg__SetParametersResult__Array *
+rcl_interfaces__msg__SetParametersResult__Sequence *
 rcl_parameter_client_take_set_response(
   const rcl_parameter_client_t * parameter_client,
   rmw_request_id_t * request_header);
@@ -94,12 +94,12 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_client_send_get_request(
   const rcl_parameter_client_t * client,
-  const rosidl_generator_c__String__Array * names,
+  const rosidl_generator_c__String__Sequence * names,
   int64_t * sequence_number);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rcl_interfaces__msg__ParameterValue__Array *
+rcl_interfaces__msg__ParameterValue__Sequence *
 rcl_parameter_client_take_get_response(
   const rcl_parameter_client_t * client,
   rmw_request_id_t * request_header);
@@ -109,12 +109,12 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_client_send_get_types_request(
   const rcl_parameter_client_t * client,
-  const rosidl_generator_c__String__Array * parameter_names,
+  const rosidl_generator_c__String__Sequence * parameter_names,
   int64_t * sequence_number);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rosidl_generator_c__uint8__Array *
+rosidl_generator_c__uint8__Sequence *
 rcl_parameter_client_take_get_types_response(
   const rcl_parameter_client_t * client,
   rmw_request_id_t * request_header);
@@ -124,7 +124,7 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_client_send_set_atomically_request(
   const rcl_parameter_client_t * client,
-  const rcl_interfaces__msg__Parameter__Array * parameter_values,
+  const rcl_interfaces__msg__Parameter__Sequence * parameter_values,
   int64_t * sequence_number);
 
 RCL_PUBLIC
@@ -139,7 +139,7 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_client_send_list_request(
   const rcl_parameter_client_t * client,
-  const rosidl_generator_c__String__Array * prefixes,
+  const rosidl_generator_c__String__Sequence * prefixes,
   uint64_t depth,
   int64_t * sequence_number);
 
