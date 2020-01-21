@@ -20,6 +20,9 @@ extern "C"
 {
 #endif
 
+#include "rcl/types.h"
+#include "rcl/visibility_control.h"
+#include "rcl/macros.h"
 #include "rcl_interfaces/msg/parameter.h"
 #include "rcl_interfaces/msg/parameter_event.h"
 
@@ -45,7 +48,7 @@ RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_set_integer(
-  rcl_interfaces__msg__Parameter * parameter, const char * parameter_name, int value);
+  rcl_interfaces__msg__Parameter * parameter, const char * parameter_name, int64_t value);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
@@ -103,7 +106,7 @@ RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_parameter_set_value_integer(
-  rcl_interfaces__msg__ParameterValue * parameter_value, int value);
+  rcl_interfaces__msg__ParameterValue * parameter_value, int64_t value);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED

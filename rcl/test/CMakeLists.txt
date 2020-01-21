@@ -216,7 +216,7 @@ function(test_target_function)
     ENV ${extra_test_env}
     APPEND_LIBRARY_DIRS ${extra_lib_dirs}
     LIBRARIES ${PROJECT_NAME} ${extra_test_libraries}
-    AMENT_DEPENDENCIES ${rmw_implementation} "rcl_interfaces"
+    AMENT_DEPENDENCIES ${rmw_implementation} "osrf_testing_tools_cpp" "rcl_interfaces"
     ${SKIP_TEST}
   )
 

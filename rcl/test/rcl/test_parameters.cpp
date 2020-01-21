@@ -15,7 +15,7 @@
 #include <gtest/gtest.h>
 
 #include "rosidl_generator_c/string_functions.h"
-#include "rosidl_generator_c/primitives_array_functions.h"
+#include "rosidl_generator_c/primitives_sequence_functions.h"
 
 #include "rcl_interfaces/msg/list_parameters_result__functions.h"
 #include "rcl_interfaces/msg/parameter__functions.h"
@@ -28,6 +28,8 @@
 #include "rcl/parameter.h"
 #include "rcl/parameter_client.h"
 #include "rcl/parameter_service.h"
+
+#include "osrf_testing_tools_cpp/scope_exit.hpp"
 
 #include "rcl/rcl.h"
 
@@ -47,6 +49,7 @@
 class CLASSNAME (TestParametersFixture, RMW_IMPLEMENTATION) : public ::testing::Test
 {
 public:
+  rcl_context_t * context_ptr = nullptr;
   rcl_node_t * node_ptr = nullptr;
   rcl_wait_set_t * wait_set = nullptr;
   rcl_parameter_service_t * parameter_service = nullptr;
@@ -55,31 +58,44 @@ public:
   void SetUp()
   {
     rcl_ret_t ret;
-    ret = rcl_init(0, nullptr, rcl_get_default_allocator());
-    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    ret = rcl_init_options_init(&init_options, rcl_get_default_allocator());
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({
+      EXPECT_EQ(RCL_RET_OK, rcl_init_options_fini(&init_options)) << rcl_get_error_string().str;
+    });
+
+    this->context_ptr = new rcl_context_t;
+    *this->context_ptr = rcl_get_zero_initialized_context();
+
+    ret = rcl_init(0, nullptr, &init_options, this->context_ptr);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+
     this->node_ptr = new rcl_node_t;
     *this->node_ptr = rcl_get_zero_initialized_node();
-    const char * name = "parameter_node";
+
     rcl_node_options_t node_options = rcl_node_get_default_options();
-    ret = rcl_node_init(this->node_ptr, name, "", &node_options);
-    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+
+    ret = rcl_node_init(this->node_ptr, "parameter_node", "", this->context_ptr, &node_options);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
     this->wait_set = new rcl_wait_set_t;
     *this->wait_set = rcl_get_zero_initialized_wait_set();
-    ret = rcl_wait_set_init(wait_set, 0, 0, 0, 0, 0, rcl_get_default_allocator());
-    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+    ret = rcl_wait_set_init(wait_set, 0, 0, 0, 0, 0, 0, this->context_ptr, rcl_get_default_allocator());
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
     this->parameter_client = new rcl_parameter_client_t;
     *this->parameter_client = rcl_get_zero_initialized_parameter_client();
     rcl_parameter_client_options_t cs_options = rcl_parameter_client_get_default_options();
     ret = rcl_parameter_client_init(this->parameter_client, this->node_ptr, &cs_options);
-    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
     this->parameter_service = new rcl_parameter_service_t;
     *this->parameter_service = rcl_get_zero_initialized_parameter_service();
     rcl_parameter_service_options_t ps_options = rcl_parameter_service_get_default_options();
     ret = rcl_parameter_service_init(this->parameter_service, this->node_ptr, &ps_options);
-    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   }
 
   void TearDown()
@@ -87,34 +103,34 @@ public:
     rcl_ret_t ret;
     if (this->wait_set) {
       ret = rcl_wait_set_fini(this->wait_set);
-      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       delete this->wait_set;
     }
 
     if (this->parameter_service) {
       ret = rcl_parameter_service_fini(this->parameter_service);
-      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       delete this->parameter_service;
     }
 
     if (this->parameter_client) {
       ret = rcl_parameter_client_fini(this->parameter_client);
-      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       delete this->parameter_client;
     }
 
     if (this->node_ptr) {
       ret = rcl_node_fini(this->node_ptr);
-      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+      EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       delete this->node_ptr;
     }
-    ret = rcl_shutdown();
-    EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+    ret = rcl_shutdown(this->context_ptr);
+    EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   }
 };
 
 // Helper function for filling in hardcoded test values
-rcl_ret_t fill_parameter_array(rcl_interfaces__msg__Parameter__Array * parameters)
+rcl_ret_t fill_parameter_sequence(rcl_interfaces__msg__Parameter__Sequence * parameters)
 {
   size_t parameters_idx = 0;
   rcl_ret_t ret = rcl_parameter_set_bool(&parameters->data[parameters_idx++], "bool_param", true);
@@ -132,15 +148,10 @@ rcl_ret_t fill_parameter_array(rcl_interfaces__msg__Parameter__Array * parameter
 
   ret = rcl_parameter_set_string(
     &parameters->data[parameters_idx++], "string_param", "hello world");
-  // TODO(jacquelinekay) Bytes and other arrays of primitives need more helper functions
-  /*
-  uint8_t bytes[5] = "\1\2\3\4";
-  ret = rcl_parameter_set_bytes(&parameters->data[parameters_idx++], "bytes_param", &(bytes[0]));
-  */
   return ret;
 }
 
-void compare_parameter_array(const rcl_interfaces__msg__Parameter__Array * parameters)
+void compare_parameter_sequence(const rcl_interfaces__msg__Parameter__Sequence * parameters)
 {
   ASSERT_EQ(NUM_PARAMS, parameters->size);
   size_t parameters_idx = 0;
@@ -158,7 +169,7 @@ void compare_parameter_array(const rcl_interfaces__msg__Parameter__Array * param
   EXPECT_EQ(0, strcmp(parameters->data[parameters_idx].value.string_value.data, "hello world"));
 }
 
-void compare_parameter_array(const rcl_interfaces__msg__ParameterValue__Array * parameters)
+void compare_parameter_sequence(const rcl_interfaces__msg__ParameterValue__Sequence * parameters)
 {
   ASSERT_EQ(NUM_PARAMS, parameters->size);
   size_t parameters_idx = 0;
@@ -169,7 +180,7 @@ void compare_parameter_array(const rcl_interfaces__msg__ParameterValue__Array * 
   EXPECT_EQ(0, strcmp(parameters->data[parameters_idx].string_value.data, "hello world"));
 }
 
-void compare_parameter_array(const rosidl_generator_c__String__Array * parameter_names)
+void compare_parameter_sequence(const rosidl_generator_c__String__Sequence * parameter_names)
 {
   ASSERT_EQ(NUM_PARAMS, parameter_names->size);
   size_t parameters_idx = 0;
@@ -180,7 +191,7 @@ void compare_parameter_array(const rosidl_generator_c__String__Array * parameter
   EXPECT_EQ(0, strcmp(parameter_names->data[parameters_idx++].data, "string_param"));
 }
 
-rcl_ret_t fill_parameter_array(rcl_interfaces__msg__ParameterValue__Array * parameters)
+rcl_ret_t fill_parameter_sequence(rcl_interfaces__msg__ParameterValue__Sequence * parameters)
 {
   size_t parameters_idx = 0;
   rcl_ret_t ret = rcl_parameter_set_value_bool(&parameters->data[parameters_idx++], true);
@@ -197,14 +208,10 @@ rcl_ret_t fill_parameter_array(rcl_interfaces__msg__ParameterValue__Array * para
   }
 
   ret = rcl_parameter_set_value_string(&parameters->data[parameters_idx++], "hello world");
-  /*
-  uint8_t bytes[5] = "\1\2\3\4";
-  ret = rcl_parameter_set_value_bytes(&parameters->data[parameters_idx++], &(bytes[0]));
-  */
   return ret;
 }
 
-bool fill_parameter_names_array(rosidl_generator_c__String__Array * names)
+bool fill_parameter_names_sequence(rosidl_generator_c__String__Sequence * names)
 {
   size_t parameters_idx = 0;
   if (!rosidl_generator_c__String__assign(&names->data[parameters_idx++], "bool_param")) {
@@ -227,27 +234,11 @@ rcl_ret_t prepare_wait_set(
   rcl_wait_set_t * wait_set, rcl_parameter_service_t * parameter_service,
   rcl_parameter_client_t * parameter_client)
 {
-  rcl_ret_t ret = rcl_wait_set_clear_services(wait_set);
+  rcl_ret_t ret = rcl_wait_set_clear(wait_set);
   if (ret != RCL_RET_OK) {
     return ret;
   }
-  ret = rcl_wait_set_clear_clients(wait_set);
-  if (ret != RCL_RET_OK) {
-    return ret;
-  }
-  ret = rcl_wait_set_clear_subscriptions(wait_set);
-  if (ret != RCL_RET_OK) {
-    return ret;
-  }
-  ret = rcl_wait_set_resize_services(wait_set, RCL_NUMBER_OF_PARAMETER_ACTIONS);
-  if (ret != RCL_RET_OK) {
-    return ret;
-  }
-  ret = rcl_wait_set_resize_clients(wait_set, RCL_NUMBER_OF_PARAMETER_ACTIONS);
-  if (ret != RCL_RET_OK) {
-    return ret;
-  }
-  ret = rcl_wait_set_resize_subscriptions(wait_set, 1);
+  ret = rcl_wait_set_resize(wait_set, 1, 0, 0, RCL_NUMBER_OF_PARAMETER_ACTIONS, RCL_NUMBER_OF_PARAMETER_ACTIONS, 0);
   if (ret != RCL_RET_OK) {
     return ret;
   }
@@ -265,37 +256,37 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_set_parameters
   rcl_param_action_t action = RCL_PARAMETER_ACTION_UNKNOWN;
   rcl_ret_t ret;
 
-  rcl_interfaces__msg__Parameter__Array parameters;
-  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Array__init(&parameters, NUM_PARAMS));
+  rcl_interfaces__msg__Parameter__Sequence parameters;
+  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Sequence__init(&parameters, NUM_PARAMS));
 
-  ret = fill_parameter_array(&parameters);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  ret = fill_parameter_sequence(&parameters);
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   int64_t seq_num;
   ret = rcl_parameter_client_send_set_request(this->parameter_client, &parameters, &seq_num);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = rcl_parameter_service_get_pending_action(wait_set, parameter_service, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_SET_PARAMETERS, action);
 
-  rcl_interfaces__msg__Parameter__Array * parameters_req = rcl_parameter_service_take_set_request(
+  rcl_interfaces__msg__Parameter__Sequence * parameters_req = rcl_parameter_service_take_set_request(
     this->parameter_service, &request_header);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   // Validate the request
-  compare_parameter_array(parameters_req);
+  compare_parameter_sequence(parameters_req);
 
   // For now we'll just set them all to be successful
   // Should SetParametersResult have a "name" field for the parameter key it describes?
 
-  rcl_interfaces__msg__SetParametersResult__Array results;
-  EXPECT_TRUE(rcl_interfaces__msg__SetParametersResult__Array__init(&results, NUM_PARAMS));
+  rcl_interfaces__msg__SetParametersResult__Sequence results;
+  EXPECT_TRUE(rcl_interfaces__msg__SetParametersResult__Sequence__init(&results, NUM_PARAMS));
 
   for (size_t i = 0; i < NUM_PARAMS; ++i) {
     results.data[i].successful = true;
@@ -303,41 +294,41 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_set_parameters
   }
   ret = rcl_parameter_service_send_set_response(
     this->parameter_service, &request_header, &results);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_client_get_pending_action(wait_set, parameter_client, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_SET_PARAMETERS, action);
 
-  rcl_interfaces__msg__SetParametersResult__Array * results_response =
+  rcl_interfaces__msg__SetParametersResult__Sequence * results_response =
     rcl_parameter_client_take_set_response(this->parameter_client, &request_header);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   for (size_t i = 0; i < NUM_PARAMS; ++i) {
     EXPECT_TRUE(results_response->data[i].successful);
     EXPECT_EQ(0, strcmp(results.data[i].reason.data, "success"));
   }
 
-  rcl_interfaces__msg__Parameter__Array prior_state;
-  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Array__init(&prior_state, 3));
+  rcl_interfaces__msg__Parameter__Sequence prior_state;
+  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Sequence__init(&prior_state, 3));
 
   // Bogus values for the previous state: one the same, one removed, one changed
   ret = rcl_parameter_set_integer(&prior_state.data[0], "int_param", 123);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_set_integer(&prior_state.data[1], "deleted", 24);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_set_double(&prior_state.data[2], "double_param", -45.67);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   rcl_interfaces__msg__ParameterEvent event;
   EXPECT_TRUE(rcl_interfaces__msg__ParameterEvent__init(&event));
 
   ret = rcl_parameter_convert_changes_to_event(&prior_state, parameters_req, &event);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   auto validate_event = [](const rcl_interfaces__msg__ParameterEvent & param_event) {
       EXPECT_EQ(0, strcmp(param_event.changed_parameters.data[0].name.data, "double_param"));
@@ -358,16 +349,16 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_set_parameters
   validate_event(event);
 
   ret = rcl_parameter_service_publish_event(this->parameter_service, &event);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   rcl_interfaces__msg__ParameterEvent event_response;
   EXPECT_TRUE(rcl_interfaces__msg__ParameterEvent__init(&event_response));
   ret = rcl_parameter_client_take_event(this->parameter_client, &event_response, nullptr);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   validate_event(event_response);
 }
 
@@ -376,33 +367,33 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_set_parameters
   rcl_param_action_t action;
   rcl_ret_t ret;
 
-  rcl_interfaces__msg__Parameter__Array parameters;
-  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Array__init(&parameters, NUM_PARAMS));
+  rcl_interfaces__msg__Parameter__Sequence parameters;
+  EXPECT_TRUE(rcl_interfaces__msg__Parameter__Sequence__init(&parameters, NUM_PARAMS));
 
   rcl_interfaces__msg__SetParametersResult result;
   EXPECT_TRUE(rcl_interfaces__msg__SetParametersResult__init(&result));
 
-  ret = fill_parameter_array(&parameters);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  ret = fill_parameter_sequence(&parameters);
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   int64_t seq_num;
   ret = rcl_parameter_client_send_set_atomically_request(
     this->parameter_client, &parameters, &seq_num);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_service_get_pending_action(this->wait_set, this->parameter_service, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_SET_PARAMETERS_ATOMICALLY, action);
 
-  rcl_interfaces__msg__Parameter__Array * parameters_req =
+  rcl_interfaces__msg__Parameter__Sequence * parameters_req =
     rcl_parameter_service_take_set_atomically_request(this->parameter_service, &request_header);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
-  compare_parameter_array(parameters_req);
+  compare_parameter_sequence(parameters_req);
 
   // For now we'll just set them all to be successful
   // Should SetParametersResult have a "name" field for the parameter key it describes?
@@ -410,19 +401,19 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_set_parameters
   rosidl_generator_c__String__assign(&result.reason, "Because reasons");
   ret = rcl_parameter_service_send_set_atomically_response(
     this->parameter_service, &request_header, &result);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_client_get_pending_action(this->wait_set, this->parameter_client, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_SET_PARAMETERS_ATOMICALLY, action);
 
   rcl_interfaces__msg__SetParametersResult * result_response =
     rcl_parameter_client_take_set_atomically_response(this->parameter_client, &request_header);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe;
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   EXPECT_TRUE(result_response->successful);
   EXPECT_EQ(0, strcmp(result_response->reason.data, "Because reasons"));
@@ -435,18 +426,18 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameters
   rcl_param_action_t action;
   (void) ret;
 
-  rosidl_generator_c__String__Array parameter_names;
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&parameter_names, NUM_PARAMS));
+  rosidl_generator_c__String__Sequence parameter_names;
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&parameter_names, NUM_PARAMS));
 
-  rcl_interfaces__msg__ParameterValue__Array parameter_values;
-  EXPECT_TRUE(rcl_interfaces__msg__ParameterValue__Array__init(&parameter_values, NUM_PARAMS));
+  rcl_interfaces__msg__ParameterValue__Sequence parameter_values;
+  EXPECT_TRUE(rcl_interfaces__msg__ParameterValue__Sequence__init(&parameter_values, NUM_PARAMS));
 
-  EXPECT_TRUE(fill_parameter_names_array(&parameter_names)) << rcl_get_error_string_safe();
+  EXPECT_TRUE(fill_parameter_names_sequence(&parameter_names)) << rcl_get_error_string().str;
 
   int64_t seq_num;
   ret = rcl_parameter_client_send_get_request(
     this->parameter_client, &parameter_names, &seq_num);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
   EXPECT_EQ(RCL_RET_OK, ret);
@@ -455,14 +446,14 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameters
   ret = rcl_parameter_service_get_pending_action(this->wait_set, this->parameter_service, &action);
   EXPECT_EQ(RCL_GET_PARAMETERS, action);
 
-  rosidl_generator_c__String__Array * request = rcl_parameter_service_take_get_request(
+  rosidl_generator_c__String__Sequence * request = rcl_parameter_service_take_get_request(
     this->parameter_service, &request_header);
   EXPECT_EQ(RCL_RET_OK, ret);
-  compare_parameter_array(request);
+  compare_parameter_sequence(request);
 
   // Assign some bogus values
   // In a real client library, these would be pulled from storage
-  ret = fill_parameter_array(&parameter_values);
+  ret = fill_parameter_sequence(&parameter_values);
   EXPECT_EQ(RCL_RET_OK, ret);
   ret = rcl_parameter_service_send_get_response(
     this->parameter_service, &request_header, &parameter_values);
@@ -477,11 +468,11 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameters
 
   // TODO(jacquelinekay): Should GetParameters_Response have a Parameter__Array subfield
   // instead of a ParameterValue__Array?
-  rcl_interfaces__msg__ParameterValue__Array * response = rcl_parameter_client_take_get_response(
+  rcl_interfaces__msg__ParameterValue__Sequence * response = rcl_parameter_client_take_get_response(
     this->parameter_client, &request_header);
   EXPECT_EQ(RCL_RET_OK, ret);
 
-  compare_parameter_array(response);
+  compare_parameter_sequence(response);
 }
 
 
@@ -491,13 +482,13 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameter_
   rcl_param_action_t action;
   (void) ret;
 
-  rosidl_generator_c__String__Array parameter_names;
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&parameter_names, NUM_PARAMS));
+  rosidl_generator_c__String__Sequence parameter_names;
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&parameter_names, NUM_PARAMS));
 
-  rosidl_generator_c__uint8__Array parameter_types;
-  EXPECT_TRUE(rosidl_generator_c__uint8__Array__init(&parameter_types, NUM_PARAMS));
+  rosidl_generator_c__uint8__Sequence parameter_types;
+  EXPECT_TRUE(rosidl_generator_c__uint8__Sequence__init(&parameter_types, NUM_PARAMS));
 
-  EXPECT_TRUE(fill_parameter_names_array(&parameter_names)) << rcl_get_error_string_safe();
+  EXPECT_TRUE(fill_parameter_names_sequence(&parameter_names)) << rcl_get_error_string().str;
   int64_t seq_num;
   ret = rcl_parameter_client_send_get_types_request(this->parameter_client, &parameter_names,
       &seq_num);
@@ -508,9 +499,9 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameter_
   ret = rcl_parameter_service_get_pending_action(this->wait_set, this->parameter_service, &action);
   EXPECT_EQ(RCL_GET_PARAMETER_TYPES, action);
 
-  rosidl_generator_c__String__Array * request = rcl_parameter_service_take_get_types_request(
+  rosidl_generator_c__String__Sequence * request = rcl_parameter_service_take_get_types_request(
     this->parameter_service, &request_header);
-  compare_parameter_array(request);
+  compare_parameter_sequence(request);
 
   {
     size_t parameters_idx = 0;
@@ -518,7 +509,6 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameter_
     parameter_types.data[parameters_idx++] = rcl_interfaces__msg__ParameterType__PARAMETER_INTEGER;
     parameter_types.data[parameters_idx++] = rcl_interfaces__msg__ParameterType__PARAMETER_DOUBLE;
     parameter_types.data[parameters_idx++] = rcl_interfaces__msg__ParameterType__PARAMETER_STRING;
-    parameter_types.data[parameters_idx++] = rcl_interfaces__msg__ParameterType__PARAMETER_BYTES;
   }
   ret = rcl_parameter_service_send_get_types_response(this->parameter_service, &request_header,
       &parameter_types);
@@ -529,7 +519,7 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_get_parameter_
   ret = rcl_parameter_client_get_pending_action(this->wait_set, this->parameter_client, &action);
   EXPECT_EQ(RCL_GET_PARAMETER_TYPES, action);
 
-  rosidl_generator_c__uint8__Array * response = rcl_parameter_client_take_get_types_response(
+  rosidl_generator_c__uint8__Sequence * response = rcl_parameter_client_take_get_types_response(
     this->parameter_client, &request_header);
 
   {
@@ -554,49 +544,49 @@ TEST_F(CLASSNAME(TestParametersFixture, RMW_IMPLEMENTATION), test_list_parameter
 
   rcl_interfaces__msg__ListParametersResult list_result;
   EXPECT_TRUE(rcl_interfaces__msg__ListParametersResult__init(&list_result));
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&list_result.names, NUM_PARAMS));
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&list_result.prefixes, NUM_PARAMS));
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&list_result.names, NUM_PARAMS));
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&list_result.prefixes, NUM_PARAMS));
 
-  rosidl_generator_c__String__Array prefixes;
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&prefixes, 0));
+  rosidl_generator_c__String__Sequence prefixes;
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&prefixes, 0));
 
   uint64_t depth = 0;
   int64_t seq_num;
   ret = rcl_parameter_client_send_list_request(this->parameter_client, &prefixes, depth, &seq_num);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_parameter_service_get_pending_action(this->wait_set, this->parameter_service, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_LIST_PARAMETERS, action);
 
-  rosidl_generator_c__String__Array prefixes_req;
+  rosidl_generator_c__String__Sequence prefixes_req;
   uint64_t depth_req;
-  EXPECT_TRUE(rosidl_generator_c__String__Array__init(&prefixes_req, 0));
+  EXPECT_TRUE(rosidl_generator_c__String__Sequence__init(&prefixes_req, 0));
   ret = rcl_parameter_service_take_list_request(this->parameter_service, &request_header,
       &prefixes_req, &depth_req);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   // put some names in
-  EXPECT_TRUE(fill_parameter_names_array(&list_result.names)) << rcl_get_error_string_safe();
+  EXPECT_TRUE(fill_parameter_names_sequence(&list_result.names)) << rcl_get_error_string().str;
   ret = rcl_parameter_service_send_list_response(this->parameter_service, &request_header,
       &list_result);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = prepare_wait_set(this->wait_set, this->parameter_service, this->parameter_client);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   ret = rcl_wait(this->wait_set, WAIT_TIME);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
   ret = rcl_parameter_client_get_pending_action(this->wait_set, this->parameter_client, &action);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   EXPECT_EQ(RCL_LIST_PARAMETERS, action);
 
   rcl_interfaces__msg__ListParametersResult * result_response =
     rcl_parameter_client_take_list_response(this->parameter_client, &request_header);
-  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string_safe();
+  EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
-  compare_parameter_array(&result_response->names);
+  compare_parameter_sequence(&result_response->names);
 }

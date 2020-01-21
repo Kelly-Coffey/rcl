@@ -18,6 +18,8 @@ extern "C"
 #include <string>
 #endif
 
+#include "rcl/parameter.h"
+
 #include <rcl_interfaces/msg/parameter__functions.h>
 #include <rcl_interfaces/msg/parameter__struct.h>
 #include <rcl_interfaces/msg/parameter_event__struct.h>
@@ -27,7 +29,6 @@ extern "C"
 #include "rosidl_generator_c/string_functions.h"
 #include "rcl/allocator.h"
 #include "rcl/error_handling.h"
-#include "rcl/types.h"
 #include "./common.h"
 
 #include "rosidl_generator_c/message_type_support_struct.h"
