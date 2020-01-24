@@ -25,6 +25,7 @@ extern "C"
 #include "rcl/macros.h"
 #include "rcl_interfaces/msg/parameter.h"
 #include "rcl_interfaces/msg/parameter_event.h"
+#include <rcl_interfaces/msg/parameter_type__functions.h>
 
 typedef int rcl_param_action_t;
 #define RCL_GET_PARAMETERS 0
@@ -83,7 +84,7 @@ rcl_parameter_get_bool(const rcl_interfaces__msg__Parameter * parameter, bool * 
 RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_parameter_get_int(const rcl_interfaces__msg__Parameter * parameter, int * output);
+rcl_parameter_get_int(const rcl_interfaces__msg__Parameter * parameter, int64_t * output);
 
 RCL_PUBLIC
 RCL_WARN_UNUSED

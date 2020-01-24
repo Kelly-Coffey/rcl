@@ -20,10 +20,12 @@ extern "C"
 {
 #endif
 
-#include <rcl_interfaces/msg/list_parameters_result__struct.h>
+#include <rosidl_generator_c/string_functions.h>
+#include <rcl_interfaces/msg/list_parameters_result__functions.h>
+#include <rcl_interfaces/msg/parameter_value__functions.h>
 #include <rcl_interfaces/msg/parameter__struct.h>
 #include <rcl_interfaces/msg/parameter_event__struct.h>
-#include <rcl_interfaces/msg/set_parameters_result__struct.h>
+#include <rcl_interfaces/msg/set_parameters_result__functions.h>
 
 #include "rcl/node.h"
 #include "rcl/parameter.h"

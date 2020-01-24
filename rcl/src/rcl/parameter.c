@@ -23,7 +23,6 @@ extern "C"
 #include <rcl_interfaces/msg/parameter__functions.h>
 #include <rcl_interfaces/msg/parameter__struct.h>
 #include <rcl_interfaces/msg/parameter_event__struct.h>
-#include <rcl_interfaces/msg/parameter_type__functions.h>
 
 #include <string.h>
 #include "rosidl_generator_c/string_functions.h"
